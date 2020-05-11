@@ -1,6 +1,6 @@
 from sklearn import tree
 from sklearn.svm import SVC, LinearSVC
-from sklearn.externals import joblib
+import joblib
 from sklearn.metrics import mean_squared_error, accuracy_score
 
 class DTree():
@@ -24,7 +24,7 @@ class DTree():
         return pred
 
     def save(self, path):
-        joblib.dump(self.clf, path)
+        joblib.dump(self.cls, path)
 
     def load(self, path):
         self.cls = joblib.load(path)
@@ -32,7 +32,7 @@ class DTree():
 class SVM():
     def __init__(self):
         # self.cls = SVC(kernel='linear', verbose=True, decision_function_shape='ovr')
-        self.cls = LinearSVC(verbose=True)
+        self.cls = LinearSVC()
 
     def train(self, data, labels):
         self.cls.fit(data, labels)
@@ -50,3 +50,9 @@ class SVM():
     def predict(self, data):
         pred = self.cls.predict(data)
         return pred
+
+    def save(self, path):
+        joblib.dump(self.cls, path)
+
+    def load(self, path):
+        self.cls = joblib.load(path)
