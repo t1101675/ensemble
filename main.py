@@ -14,9 +14,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, accuracy_score
 
 np.random.seed(888)
+hyparam = {
+    "threshold": 0,
+    "sample_rate": 0.2,
+    "bagging_train_times": 100,
+    "boosting_train_times": 5,
+}
+
 
 def load_data(data_dir):
-    with open(os.path.join(data_dir, "train_origin.csv"), "r") as f:
+    with open(os.path.join(data_dir, "train.csv"), "r") as f:
         reader = csv.reader(f, delimiter="\t")
         train_data = [line for line in reader][1:]
         train_labels = [int(float(line[0])) - 1 for line in train_data]
@@ -68,8 +75,10 @@ def build_model(model_name):
         exit(-1)
 
 def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
-    sample_rate = 0.3
-    train_times = 10
+    sample_rate = hyparam["sample_rate"]
+    train_times = hyparam["bagging_train_times"]
+    threshold = hyparam["threshold"]
+
     valid_preds = []
     test_preds = []
     acc, rmse = 0, 0
@@ -78,7 +87,7 @@ def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save
         _, samp_vec, _, samp_labels = train_test_split(train_vecs, train_labels, test_size=sample_rate)
         model = build_model(model_name)
         _, _, _ = model.train(samp_vec, samp_labels)
-        model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
+        # model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
         acc, rmse, pred = model.eval(valid_vecs, valid_labels)
         print({"valid acc": acc, "valid rmse": rmse})
         valid_preds.append(pred)
@@ -92,6 +101,11 @@ def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save
             for i, p in enumerate(pred):
                 bagging_scores[i][p] += 1
 
+        with open("test.json", "w") as f:
+            json.dump(bagging_scores.tolist(), f)
+        # tuncate
+        bagging_scores *= (bagging_scores >= threshold)
+        # normalize
         bagging_scores /= np.sum(bagging_scores, axis=1)[:, np.newaxis]
         # bagging_preds = np.argmax(bagging_scores, axis=1)
         bagging_preds = np.dot(bagging_scores, np.array([0, 1, 2, 3, 4]))
@@ -110,7 +124,7 @@ def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save
 
 
 def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
-    train_times = 5
+    train_times = hyparam["boosting_train_times"]
     train_weights = np.ones(len(train_labels)) / len(train_labels)
     tbar = tqdm(range(train_times), desc="Boosting Training")
     betas = []
@@ -124,7 +138,7 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
         train_pred = np.array(train_pred)
         wrong_weights = train_weights * (train_pred != train_labels)
         sum_wrong_weight = np.sum(wrong_weights)
-        if sum_wrong_weight > 0.2:
+        if sum_wrong_weight > 0.8:
             break
             
         beta = sum_wrong_weight / (1 - sum_wrong_weight)
@@ -135,16 +149,16 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
         train_weights /= np.sum(train_weights)
         
         betas.append(beta)
-        model.save(os.path.join(save_path, "boosting-{}-{}".format(model_name, e)))
+        # model.save(os.path.join(save_path, "boosting-{}-{}".format(model_name, e)))
 
         valid_acc, valid_rmse, valid_pred = model.eval(valid_vecs, valid_labels)
         valid_preds.append(valid_pred)
 
         if test_vecs is not None:
-            test_pred = model.eval(test_vecs)
+            test_pred = model.predict(test_vecs)
             test_preds.append(test_pred)
 
-        print("train_weights:", train_weights)
+        # print("train_weights:", train_weights)
         print({"train_acc": train_acc, "train_rmse": train_rmse, "valid_acc": valid_acc, "valid_rmse": valid_rmse})
 
     with open(os.path.join(save_path, "betas.json"), "w") as f:
@@ -158,12 +172,15 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
             for i, p in enumerate(pred):
                 boosting_scores[i][p] += np.log(1 / beta)
 
-        boosting_preds = np.argmax(boosting_scores, axis=1)
+        boosting_scores /= np.sum(boosting_scores, axis=1)[:, np.newaxis]
+        # bagging_preds = np.argmax(bagging_scores, axis=1)
+        boosting_preds = np.dot(boosting_scores, np.array([0, 1, 2, 3, 4]))
         return boosting_preds
 
     v_preds = boosting_predict(valid_preds, betas)
     rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
-    acc = accuracy_score(valid_labels, v_preds)
+    # acc = accuracy_score(valid_labels, v_preds)
+    acc = 0
 
     t_preds = None
     if test_vecs is not None:
@@ -179,6 +196,7 @@ def output_preds(preds, path):
 
 
 def main():
+    print("Hyper params: ", hyparam)
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--model", type=str, default="svm")
@@ -219,6 +237,8 @@ def main():
         print("Ensemble:")
         print(acc)
         print(rmse)
+
+    print("Hyper params:", hyparam)
 
 
 if __name__ == "__main__":
