@@ -200,16 +200,24 @@ def adaboosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, 
         valid_labels_2 = (valid_labels == i) + 0
         acc, rmse, t_preds, v_preds = boosting(model_name, train_vecs, train_labels_2, valid_vecs, valid_labels_2, save_path, test_vecs=test_vecs, output_valid_preds=True, n_class=2)
         print("class {} acc: {}, rmse: {}".format(i, acc, rmse))
-        v_scores[:, i] = v_preds
+        for j, p in enumerate(v_preds):
+            if p > 0.5:
+                v_scores[j][i] += 1
+            else:
+                v_scores[j] += 1
+                v_scores[j][i] -= 1
+
+        # v_scores[:, i] = v_preds
         if v_preds is not None:
             t_scores[:, i] = t_preds
 
-    v_scores += 0.000001
+    # v_scores += 0.000001
     v_scores /= np.sum(v_scores, axis=1)[:, np.newaxis]
 
     print(v_scores)
 
-    v_preds = np.dot(v_scores, np.array([0, 1, 2, 3, 4]))
+    # v_preds = np.dot(v_scores, np.array([0, 1, 2, 3, 4]))
+    v_preds = np.argmax(v_scores, axis=1)
     if test_vecs is not None:
         t_scores += 0.000001
         t_scores /= np.sum(t_scores, axis=1)[:, np.newaxis]
