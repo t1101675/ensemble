@@ -16,7 +16,7 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 np.random.seed(888)
 
 def load_data(data_dir):
-    with open(os.path.join(data_dir, "train.csv"), "r") as f:
+    with open(os.path.join(data_dir, "train_origin.csv"), "r") as f:
         reader = csv.reader(f, delimiter="\t")
         train_data = [line for line in reader][1:]
         train_labels = [int(float(line[0])) - 1 for line in train_data]
@@ -181,7 +181,7 @@ def main():
         print("Baseline:")
         print(acc)
         print(rmse)
-        output_preds(preds, "results/predicts.csv")
+        output_preds(preds, "results/predicts_svm.csv")
     
     else:
         if args.ensemble == "bagging":

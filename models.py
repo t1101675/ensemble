@@ -5,7 +5,7 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 
 class DTree():
     def __init__(self):
-        self.cls = tree.DecisionTreeClassifier(max_depth=30)
+        self.cls = tree.DecisionTreeClassifier(max_depth=40)
 
     def train(self, data, labels, sample_weight=None):
         self.cls.fit(data, labels, sample_weight=sample_weight)
