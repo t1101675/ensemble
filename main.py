@@ -1,6 +1,7 @@
 import argparse
 import logging
 import pickle
+import json
 import sklearn
 import numpy as np
 import os
@@ -38,7 +39,7 @@ def load_data(data_dir):
     # print(test_data[0])
     # exit(0)
 
-    return train_data, train_labels, valid_data, valid_labels, test_data
+    return train_data, np.array(train_labels), valid_data, np.array(valid_labels), test_data
 
 def build_corpus(train_data, valid_data, test_data):
     corpus = []
@@ -83,9 +84,9 @@ def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save
     for e in tbar:
         _, samp_vec, _, samp_labels = train_test_split(train_vecs, train_labels, test_size=sample_rate)
         model = build_model(model_name)
-        acc, rmse = model.train(samp_vec, samp_labels)
+        acc, rmse, _ = model.train(samp_vec, samp_labels)
         tbar.set_postfix({"acc": acc, "rmse": rmse})
-        model.save(os.path.join(save_path, "dtree-{}.model".format(e)))
+        model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
         pred = model.predict(valid_vecs)
         preds.append(pred)
 
@@ -99,8 +100,55 @@ def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save
     acc = accuracy_score(valid_labels, bagging_preds)
     return acc, rmse
 
+
 def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path):
-    pass
+    train_times = 5
+    train_weights = np.ones(len(train_labels)) / len(train_labels)
+    tbar = tqdm(range(train_times), desc="Boosting Training")
+    betas = []
+    preds = []
+    acc, rmse = 0, 0
+    boosting_scores = np.zeros((len(valid_labels), 5))
+    for e in tbar:
+        model = build_model(model_name)
+        train_acc, train_rmse, train_pred = model.train(train_vecs, train_labels, sample_weight=train_weights)
+        train_pred = np.array(train_pred)
+        wrong_weights = train_weights * (train_pred != train_labels)
+        sum_wrong_weight = np.sum(wrong_weights)
+        if sum_wrong_weight > 0.5:
+            break
+            
+        beta = sum_wrong_weight / (1 - sum_wrong_weight)
+
+        right_weights = train_weights * (train_pred == train_labels)
+        right_weights *= beta
+        train_weights = right_weights + wrong_weights
+        print(train_weights)
+        train_weights /= np.sum(train_weights)
+        
+        betas.append(beta)
+        model.save(os.path.join(save_path, "boosting-{}-{}".format(model_name, e)))
+
+        valid_acc, valid_rmse, valid_pred = model.eval(valid_vecs, valid_labels)
+        preds.append(valid_pred)
+
+        print({"train_acc": train_acc, "train_rmse": train_rmse, "valid_acc": valid_acc, "valid_rmse": valid_rmse})
+
+    with open(os.path.join(save_path, "betas.json"), "w") as f:
+        json.dump(betas, f)
+
+    print(betas)
+
+    for pred, beta in zip(preds, betas):
+        for i, p in enumerate(pred):
+            boosting_scores[i][p] += np.log(1 / beta)
+
+    boosting_preds = np.argmax(boosting_scores, axis=1)
+
+    rmse = mean_squared_error(valid_labels, boosting_preds) ** 0.5
+    acc = accuracy_score(valid_labels, boosting_preds)
+    return acc, rmse
+        
 
 def main():
     parser = argparse.ArgumentParser()
@@ -122,7 +170,10 @@ def main():
 
     # print(train_acc, train_rmse)
     # print(valid_acc, valid_rmse)
-    acc, rmse = bagging("svm", train_vecs, train_labels, valid_vecs, valid_labels, "models/")
+    # acc, rmse = bagging("svm", train_vecs, train_labels, valid_vecs, valid_labels, "models/")
+    print(train_vecs.__class__)
+    acc, rmse = boosting("svm", train_vecs[0:20000], train_labels[0:20000], valid_vecs, valid_labels, "models/boosting")
+
 
     print("Final")
     print(acc)

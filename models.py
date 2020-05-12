@@ -31,21 +31,22 @@ class DTree():
 
 class SVM():
     def __init__(self):
-        # self.cls = SVC(kernel='linear', verbose=True, decision_function_shape='ovr')
-        self.cls = LinearSVC()
+        self.cls = SVC(kernel='linear', verbose=False)
+        # self.cls = LinearSVC()
 
-    def train(self, data, labels):
-        self.cls.fit(data, labels)
+    def train(self, data, labels, sample_weight=None):
+        print(sample_weight)
+        self.cls.fit(data, labels, sample_weight=sample_weight)
         pred = self.cls.predict(data)
         acc = accuracy_score(labels, pred)
         rmse = mean_squared_error(labels, pred) ** 0.5
-        return acc, rmse
+        return acc, rmse, pred
     
     def eval(self, data, labels):
         pred = self.cls.predict(data)
         acc = accuracy_score(labels, pred)
         rmse = mean_squared_error(labels, pred) ** 0.5
-        return acc, rmse
+        return acc, rmse, pred
 
     def predict(self, data):
         pred = self.cls.predict(data)
