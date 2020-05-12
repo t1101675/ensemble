@@ -51,7 +51,7 @@ def build_corpus(train_data, valid_data, test_data):
     for line in test_data:
         corpus.append(line[0] + line[1])
 
-    vectorizer = CountVectorizer(stop_words="english", max_features=10000)
+    vectorizer = CountVectorizer(stop_words="english", max_features=20000)
     transformer = TfidfTransformer()
     count = vectorizer.fit_transform(corpus)
     tfidf_matrix = transformer.fit_transform(count)
@@ -76,7 +76,7 @@ def build_model(model_name):
 
 def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path):
     sample_rate = 0.2
-    train_times = 50
+    train_times = 10
     preds = []
     bagging_scores = np.zeros((len(valid_labels), 5))
     acc, rmse = 0, 0
@@ -84,10 +84,10 @@ def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save
     for e in tbar:
         _, samp_vec, _, samp_labels = train_test_split(train_vecs, train_labels, test_size=sample_rate)
         model = build_model(model_name)
-        acc, rmse, _ = model.train(samp_vec, samp_labels)
-        tbar.set_postfix({"acc": acc, "rmse": rmse})
+        _, _, _ = model.train(samp_vec, samp_labels)
+        print({"acc": acc, "rmse": rmse})
         model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
-        pred = model.predict(valid_vecs)
+        acc, rmse, pred = model.eval(valid_vecs, valid_labels)
         preds.append(pred)
 
     for pred in preds:
@@ -149,10 +149,20 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
     rmse = mean_squared_error(valid_labels, boosting_preds) ** 0.5
     acc = accuracy_score(valid_labels, boosting_preds)
     return acc, rmse
-        
+
+def output_preds(preds, path):
+    with open(path, "w") as f:
+        f.write("id,predicted\n")
+        for i, p in enumerate(preds):
+            f.write(str(i + 1) + "," + str(p + 1) + "\n")
+
 
 def main():
     parser = argparse.ArgumentParser()
+
+    parser.add_argument("--model", type=str, default="svm")
+    parser.add_argument("--ensemble", type=str, default="bagging")
+    parser.add_argument("--baseline", action="store_true")
 
     args = parser.parse_args()
 
@@ -162,21 +172,27 @@ def main():
 
     train_vecs, valid_vecs, test_vecs = build_corpus(train_data, valid_data, test_data)
 
-    acc, rmse = bagging("svm", train_vecs, train_labels, valid_vecs, valid_labels, "models/boosting")
-    print(acc)
-    print(rmse)
-    # dtree = DTree()
-    # acc, rmse, _ = dtree.train(train_vecs[0:20000], train_labels[0:20000])
+    if args.baseline:
+        model = build_model(args.model)
+        model.train(train_vecs, train_labels)
+        acc, rmse, _ = model.eval(valid_vecs, valid_labels)
+        preds = model.predict(test_vecs)
 
-    # print("Final")
-    # print(acc)
-    # print(rmse)
-
-    # acc, rmse, _ = dtree.eval(valid_vecs[0:2000], valid_labels[0:2000])
-
-    # print("Final")
-    # print(acc)
-    # print(rmse)
+        print("Baseline:")
+        print(acc)
+        print(rmse)
+        output_preds(preds, "results/predicts.csv")
+    
+    else:
+        if args.ensemble == "bagging":
+            acc, rmse = bagging(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/bagging")
+        elif args.ensemble == "boosting":
+            acc, rmse = boosting(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/boosting")
+        else:
+            exit(-1)
+        print("Ensemble:")
+        print(acc)
+        print(rmse)
 
 
 if __name__ == "__main__":
