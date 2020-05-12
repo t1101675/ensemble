@@ -75,7 +75,7 @@ def build_model(model_name):
         exit(-1)
 
 def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path):
-    sample_rate = 0.1
+    sample_rate = 0.2
     train_times = 50
     preds = []
     bagging_scores = np.zeros((len(valid_labels), 5))
@@ -109,13 +109,14 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
     preds = []
     acc, rmse = 0, 0
     boosting_scores = np.zeros((len(valid_labels), 5))
+    print("Original Train Weights: ", train_weights)
     for e in tbar:
         model = build_model(model_name)
         train_acc, train_rmse, train_pred = model.train(train_vecs, train_labels, sample_weight=train_weights)
         train_pred = np.array(train_pred)
         wrong_weights = train_weights * (train_pred != train_labels)
         sum_wrong_weight = np.sum(wrong_weights)
-        if sum_wrong_weight > 0.5:
+        if sum_wrong_weight > 0.2:
             break
             
         beta = sum_wrong_weight / (1 - sum_wrong_weight)
@@ -123,7 +124,6 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
         right_weights = train_weights * (train_pred == train_labels)
         right_weights *= beta
         train_weights = right_weights + wrong_weights
-        print(train_weights)
         train_weights /= np.sum(train_weights)
         
         betas.append(beta)
@@ -132,12 +132,13 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
         valid_acc, valid_rmse, valid_pred = model.eval(valid_vecs, valid_labels)
         preds.append(valid_pred)
 
+        print("train_weights:", train_weights)
         print({"train_acc": train_acc, "train_rmse": train_rmse, "valid_acc": valid_acc, "valid_rmse": valid_rmse})
 
     with open(os.path.join(save_path, "betas.json"), "w") as f:
         json.dump(betas, f)
 
-    print(betas)
+    print("betas: ", betas)
 
     for pred, beta in zip(preds, betas):
         for i, p in enumerate(pred):
@@ -160,24 +161,23 @@ def main():
     train_data, train_labels, valid_data, valid_labels, test_data = load_data(data_dir)
 
     train_vecs, valid_vecs, test_vecs = build_corpus(train_data, valid_data, test_data)
-    # print(train_vecs[1])
-    # print(train_data[1])
-    # exit(0)
-    # svm = SVM()
 
-    # train_acc, train_rmse = svm.train(train_vecs.toarray(), train_labels)
-    # valid_acc, valid_rmse = svm.eval(valid_vecs.toarray(), valid_labels)
-
-    # print(train_acc, train_rmse)
-    # print(valid_acc, valid_rmse)
-    # acc, rmse = bagging("svm", train_vecs, train_labels, valid_vecs, valid_labels, "models/")
-    print(train_vecs.__class__)
-    acc, rmse = boosting("svm", train_vecs[0:20000], train_labels[0:20000], valid_vecs, valid_labels, "models/boosting")
-
-
-    print("Final")
+    acc, rmse = bagging("svm", train_vecs, train_labels, valid_vecs, valid_labels, "models/boosting")
     print(acc)
     print(rmse)
+    # dtree = DTree()
+    # acc, rmse, _ = dtree.train(train_vecs[0:20000], train_labels[0:20000])
+
+    # print("Final")
+    # print(acc)
+    # print(rmse)
+
+    # acc, rmse, _ = dtree.eval(valid_vecs[0:2000], valid_labels[0:2000])
+
+    # print("Final")
+    # print(acc)
+    # print(rmse)
+
 
 if __name__ == "__main__":
     main()
