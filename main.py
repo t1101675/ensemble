@@ -28,16 +28,9 @@ def load_data(data_dir):
         valid_labels = [int(float(line[0])) - 1 for line in valid_data]
         valid_data = [(line[4], line[5]) for line in valid_data]
 
-        # print(valid_data)
-        # exit(0)
-
     with open(os.path.join(data_dir, "test.csv"), "r") as f:
         reader = csv.reader(f, delimiter="\t")
         test_data = [(line[4], line[5]) for line in reader][1:]
-    # print(train_data[0])
-    # print(valid_data[0])
-    # print(test_data[0])
-    # exit(0)
 
     return train_data, np.array(train_labels), valid_data, np.array(valid_labels), test_data
 
@@ -74,41 +67,56 @@ def build_model(model_name):
         print("No model")
         exit(-1)
 
-def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path):
-    sample_rate = 0.2
+def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
+    sample_rate = 0.3
     train_times = 10
-    preds = []
-    bagging_scores = np.zeros((len(valid_labels), 5))
+    valid_preds = []
+    test_preds = []
     acc, rmse = 0, 0
     tbar = tqdm(range(train_times), desc="Bagging Training")
     for e in tbar:
         _, samp_vec, _, samp_labels = train_test_split(train_vecs, train_labels, test_size=sample_rate)
         model = build_model(model_name)
         _, _, _ = model.train(samp_vec, samp_labels)
-        print({"acc": acc, "rmse": rmse})
         model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
         acc, rmse, pred = model.eval(valid_vecs, valid_labels)
-        preds.append(pred)
+        print({"valid acc": acc, "valid rmse": rmse})
+        valid_preds.append(pred)
+        if test_vecs is not None:
+            pred = model.predict(test_vecs)
+            test_preds.append(pred)
 
-    for pred in preds:
-        for i, p in enumerate(pred):
-            bagging_scores[i][p] += 1
+    def bagging_predict(preds):
+        bagging_scores = np.zeros((len(preds[0]), 5))
+        for pred in preds:
+            for i, p in enumerate(pred):
+                bagging_scores[i][p] += 1
 
-    bagging_preds = np.argmax(bagging_scores, axis=1)
+        bagging_scores /= np.sum(bagging_scores, axis=1)[:, np.newaxis]
+        # bagging_preds = np.argmax(bagging_scores, axis=1)
+        bagging_preds = np.dot(bagging_scores, np.array([0, 1, 2, 3, 4]))
+        return bagging_preds
 
-    rmse = mean_squared_error(valid_labels, bagging_preds) ** 0.5
-    acc = accuracy_score(valid_labels, bagging_preds)
-    return acc, rmse
+    v_preds = bagging_predict(valid_preds)
+    rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
+    acc = 0
+    # acc = accuracy_score(valid_labels, v_preds)
+
+    t_preds = None
+    if test_vecs is not None:
+        t_preds = bagging_predict(test_preds)
+
+    return acc, rmse, t_preds
 
 
-def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path):
+def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
     train_times = 5
     train_weights = np.ones(len(train_labels)) / len(train_labels)
     tbar = tqdm(range(train_times), desc="Boosting Training")
     betas = []
-    preds = []
+    valid_preds = []
+    test_preds = []
     acc, rmse = 0, 0
-    boosting_scores = np.zeros((len(valid_labels), 5))
     print("Original Train Weights: ", train_weights)
     for e in tbar:
         model = build_model(model_name)
@@ -130,7 +138,11 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
         model.save(os.path.join(save_path, "boosting-{}-{}".format(model_name, e)))
 
         valid_acc, valid_rmse, valid_pred = model.eval(valid_vecs, valid_labels)
-        preds.append(valid_pred)
+        valid_preds.append(valid_pred)
+
+        if test_vecs is not None:
+            test_pred = model.eval(test_vecs)
+            test_preds.append(test_pred)
 
         print("train_weights:", train_weights)
         print({"train_acc": train_acc, "train_rmse": train_rmse, "valid_acc": valid_acc, "valid_rmse": valid_rmse})
@@ -140,15 +152,24 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
 
     print("betas: ", betas)
 
-    for pred, beta in zip(preds, betas):
-        for i, p in enumerate(pred):
-            boosting_scores[i][p] += np.log(1 / beta)
+    def boosting_predict(preds, betas):
+        boosting_scores = np.zeros((len(preds[0]), 5))
+        for pred, beta in zip(preds, betas):
+            for i, p in enumerate(pred):
+                boosting_scores[i][p] += np.log(1 / beta)
 
-    boosting_preds = np.argmax(boosting_scores, axis=1)
+        boosting_preds = np.argmax(boosting_scores, axis=1)
+        return boosting_preds
 
-    rmse = mean_squared_error(valid_labels, boosting_preds) ** 0.5
-    acc = accuracy_score(valid_labels, boosting_preds)
-    return acc, rmse
+    v_preds = boosting_predict(valid_preds, betas)
+    rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
+    acc = accuracy_score(valid_labels, v_preds)
+
+    t_preds = None
+    if test_vecs is not None:
+        t_preds = boosting_predict(test_preds, betas)
+    
+    return acc, rmse, t_preds
 
 def output_preds(preds, path):
     with open(path, "w") as f:
@@ -177,17 +198,22 @@ def main():
         model.train(train_vecs, train_labels)
         acc, rmse, _ = model.eval(valid_vecs, valid_labels)
         preds = model.predict(test_vecs)
+        output_preds(preds, "results/{}.csv".format(args.model))
 
         print("Baseline:")
         print(acc)
         print(rmse)
-        output_preds(preds, "results/predicts_svm.csv")
     
     else:
         if args.ensemble == "bagging":
-            acc, rmse = bagging(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/bagging")
+            acc, rmse, test_preds = bagging(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/bagging", test_vecs=test_vecs)
+            print(len(test_preds))
+            if test_preds is not None:
+                output_preds(test_preds, "results/bagging_{}.csv".format(args.model))
         elif args.ensemble == "boosting":
-            acc, rmse = boosting(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/boosting")
+            acc, rmse, test_preds = boosting(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/boosting", test_vecs=test_vecs)
+            if test_preds is not None:
+                output_preds(test_preds, "results/boosting_{}.csv".format(args.model))
         else:
             exit(-1)
         print("Ensemble:")
