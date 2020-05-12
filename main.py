@@ -17,8 +17,9 @@ np.random.seed(888)
 hyparam = {
     "threshold": 0,
     "sample_rate": 0.2,
-    "bagging_train_times": 100,
+    "bagging_train_times": 60,
     "boosting_train_times": 5,
+    "max_features": 15000
 }
 
 
@@ -42,6 +43,7 @@ def load_data(data_dir):
     return train_data, np.array(train_labels), valid_data, np.array(valid_labels), test_data
 
 def build_corpus(train_data, valid_data, test_data):
+    max_features = hyparam["max_features"]
     corpus = []
     print("Preprocessing")
     for line in train_data:
@@ -51,7 +53,7 @@ def build_corpus(train_data, valid_data, test_data):
     for line in test_data:
         corpus.append(line[0] + line[1])
 
-    vectorizer = CountVectorizer(stop_words="english", max_features=20000)
+    vectorizer = CountVectorizer(stop_words="english", max_features=max_features)
     transformer = TfidfTransformer()
     count = vectorizer.fit_transform(corpus)
     tfidf_matrix = transformer.fit_transform(count)
