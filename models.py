@@ -4,8 +4,8 @@ import joblib
 from sklearn.metrics import mean_squared_error, accuracy_score
 
 class DTree():
-    def __init__(self):
-        self.cls = tree.DecisionTreeClassifier(max_depth=40)
+    def __init__(self, max_depth):
+        self.cls = tree.DecisionTreeClassifier(max_depth=max_depth, class_weight="balanced")
 
     def train(self, data, labels, sample_weight=None):
         self.cls.fit(data, labels, sample_weight=sample_weight)
@@ -31,9 +31,9 @@ class DTree():
         self.cls = joblib.load(path)
 
 class SVM():
-    def __init__(self):
+    def __init__(self, tol=1e-4, C=1):
         # self.cls = SVC(kernel='linear', verbose=False)
-        self.cls = LinearSVC()
+        self.cls = LinearSVC(tol=tol, C=C, class_weight="balanced")
 
     def train(self, data, labels, sample_weight=None):
         # self.cls.fit(data, labels, sample_weight=sample_weight * len(labels))

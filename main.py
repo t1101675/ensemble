@@ -16,10 +16,13 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 np.random.seed(888)
 hyparam = {
     "threshold": 0,
-    "sample_rate": 0.2,
-    "bagging_train_times": 60,
+    "sample_rate": 0.1,
+    "bagging_train_times": 200,
     "boosting_train_times": 20,
-    "max_features": 15000
+    "max_features": 15000,
+    "max_depth": 60,
+    "tol": 1e-4,
+    "C": 2
 }
 
 
@@ -29,6 +32,10 @@ def load_data(data_dir):
         train_data = [line for line in reader][1:]
         train_labels = [int(float(line[0])) - 1 for line in train_data]
         train_data = [(line[4], line[5]) for line in train_data]
+        count = [0, 0, 0, 0, 0]
+        for l in train_labels:
+            count[l] += 1
+        print(count)
 
     with open(os.path.join(data_dir, "valid.csv"), "r") as f:
         reader = csv.reader(f, delimiter="\t")
@@ -69,9 +76,9 @@ def build_corpus(train_data, valid_data, test_data):
 
 def build_model(model_name):
     if model_name == "dtree":
-        return DTree()
+        return DTree(max_depth=hyparam["max_depth"])
     elif model_name == "svm":
-        return SVM()
+        return SVM(tol=hyparam["tol"], C=hyparam["C"])
     else:
         print("No model")
         exit(-1)
@@ -262,8 +269,8 @@ def main():
             if test_preds is not None:
                 output_preds(test_preds, "results/bagging_{}.csv".format(args.model))
         elif args.ensemble == "boosting":
-            # acc, rmse, test_preds = boosting(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/boosting", test_vecs=test_vecs)
-            acc, rmse, test_preds = adaboosting(args.model, train_vecs[0:20000], train_labels[0:20000], valid_vecs[0:2000], valid_labels[0:2000], "models/boosting", test_vecs=test_vecs)
+            acc, rmse, test_preds = boosting(args.model, train_vecs, train_labels, valid_vecs, valid_labels, "models/boosting", test_vecs=test_vecs)
+            # acc, rmse, test_preds = adaboosting(args.model, train_vecs[0:20000], train_labels[0:20000], valid_vecs[0:2000], valid_labels[0:2000], "models/boosting", test_vecs=test_vecs)
 
             if test_preds is not None:
                 output_preds(test_preds, "results/boosting_{}.csv".format(args.model))
