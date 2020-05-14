@@ -66,10 +66,13 @@ def main():
 
         # print("Ensemble:")
         # print(rmse)
-
+        a = hyparam["a"]
         if args.title:
             t_rmse, t_test_preds, t_valid_preds = bagging(args.model, t_train_vecs, train_labels, t_valid_vecs, valid_labels, "models/bagging", test_vecs=t_test_vecs, output_valid_preds=True)
-            print(t_rmse)    
+            valid_preds = (a * t_valid_preds + valid_preds) / (a + 1)
+            print(t_rmse)
+            final_rmse = mean_squared_error(valid_labels, valid_preds) ** 0.5
+            print(final_rmse)
         
 
     print("Hyper params:", hyparam)
