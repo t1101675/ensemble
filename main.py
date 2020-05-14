@@ -83,7 +83,7 @@ def main():
         a = hyparam["a"]
         bagging_hyparam = {
             "model_name": args.model,
-            "sample_rate": hyparam["sample_rate"],
+            "sample_rate": hyparam["title_sample_rate"],
             "train_times": hyparam["title_bagging_train_times"],
             "threshold": hyparam["threshold"],
             "save_path": "models/bagging",

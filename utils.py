@@ -96,13 +96,14 @@ def output_preds(preds, path):
 hyparam = {
     "threshold": 0,
     "sample_rate": 0.1,
-    "title_bagging_train_times": 60,
+    "title_sample_rate": 0.2,
+    "title_bagging_train_times": 200,
     "bagging_train_times": 200,
     "boosting_train_times": 20,
     "max_features": 15000,
-    "title_max_features": 10000,
+    "title_max_features": 15000,
     "max_depth": 60,
     "tol": 1e-4,
     "C": 2,
-    "a": 0.5
+    "a": 0.3
 }
