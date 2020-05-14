@@ -96,7 +96,8 @@ def output_preds(preds, path):
 hyparam = {
     "threshold": 0,
     "sample_rate": 0.1,
-    "bagging_train_times": 60,
+    "title_bagging_train_times": 60,
+    "bagging_train_times": 200,
     "boosting_train_times": 20,
     "max_features": 15000,
     "title_max_features": 10000,

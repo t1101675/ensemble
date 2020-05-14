@@ -6,12 +6,14 @@ import os
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, accuracy_score
-from utils import build_model, hyparam
+from utils import build_model
 
-def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None, output_valid_preds=False):
+def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=None):
     sample_rate = hyparam["sample_rate"]
-    train_times = hyparam["bagging_train_times"]
+    train_times = hyparam["train_times"]
     threshold = hyparam["threshold"]
+    model_name = hyparam["model_name"]
+    output_valid_preds = hyparam["output_valid_preds"]
 
     valid_preds = []
     test_preds = []

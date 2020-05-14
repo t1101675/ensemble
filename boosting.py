@@ -8,8 +8,11 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 
 from utils import build_model, hyparam
 
-def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None, output_valid_preds=False, n_class=5):
+def boosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=None, n_class=5):
+    model_name = hyparam["model_name"]
     train_times = hyparam["boosting_train_times"]
+    output_valid_preds = hyparam["output_valid_preds"]
+
     train_weights = np.ones(len(train_labels)) / len(train_labels)
     betas = []
     valid_preds = []
@@ -74,13 +77,13 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
     else:
         return rmse, t_preds
 
-def adaboosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
+def adaboosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
     v_scores = np.zeros((len(valid_labels), 5))
     t_scores = np.zeros((test_vecs.shape[0], 5))
     for i in range(5):
         train_labels_2 = (train_labels == i) + 0
         valid_labels_2 = (valid_labels == i) + 0
-        acc, rmse, t_preds, v_preds = boosting(model_name, train_vecs, train_labels_2, valid_vecs, valid_labels_2, save_path, test_vecs=test_vecs, output_valid_preds=True, n_class=2)
+        acc, rmse, t_preds, v_preds = boosting(hyparam, train_vecs, train_labels_2, valid_vecs, valid_labels_2, test_vecs=test_vecs, n_class=2)
         print("class {} acc: {}, rmse: {}".format(i, acc, rmse))
         v_scores[:, i] = v_preds
         if v_preds is not None:
