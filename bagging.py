@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, accuracy_score
 from utils import build_model, hyparam
 
-def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
+def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None, output_valid_preds=False):
     sample_rate = hyparam["sample_rate"]
     train_times = hyparam["bagging_train_times"]
     threshold = hyparam["threshold"]
@@ -48,11 +48,13 @@ def bagging(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save
 
     v_preds = bagging_predict(valid_preds)
     rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
-    acc = 0
     # acc = accuracy_score(valid_labels, v_preds)
 
     t_preds = None
     if test_vecs is not None:
         t_preds = bagging_predict(test_preds)
 
-    return acc, rmse, t_preds
+    if output_valid_preds:
+        return rmse, t_preds, v_preds
+    else:
+        return rmse, t_preds

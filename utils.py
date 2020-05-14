@@ -31,7 +31,19 @@ def load_data(data_dir):
 
     return train_data, np.array(train_labels), valid_data, np.array(valid_labels), test_data
 
-def build_corpus(train_data, valid_data, test_data):
+def _build_corpus(corpus, train_len, valid_len, max_features):
+    vectorizer = CountVectorizer(stop_words="english", max_features=max_features)
+    transformer = TfidfTransformer()
+    count = vectorizer.fit_transform(corpus)
+    all_vecs = transformer.fit_transform(count)
+    print("num_features: ", len(vectorizer.get_feature_names()))
+
+    train_vecs = all_vecs[0:train_len]
+    valid_vecs = all_vecs[train_len:train_len + valid_len]
+    test_vecs = all_vecs[train_len + valid_len:]
+    return train_vecs, valid_vecs, test_vecs
+
+def build_corpus(train_data, valid_data, test_data, split_title=False):
     max_features = hyparam["max_features"]
     corpus = []
     print("Preprocessing")
@@ -42,19 +54,27 @@ def build_corpus(train_data, valid_data, test_data):
     for line in test_data:
         corpus.append(line[0] + line[1])
 
-    vectorizer = CountVectorizer(stop_words="english", max_features=max_features)
-    transformer = TfidfTransformer()
-    count = vectorizer.fit_transform(corpus)
-    tfidf_matrix = transformer.fit_transform(count)
+    train_vecs, valid_vecs, test_vecs = _build_corpus(corpus, len(train_data), len(valid_data), max_features)
     
-    print(len(vectorizer.get_feature_names()))
+    if split_title:
+        title_max_features = hyparam["title_max_features"]
+        corpus = []
+        for line in train_data:
+            corpus.append(line[0])
+        for line in valid_data:
+            corpus.append(line[0])
+        for line in test_data:
+            corpus.append(line[0])
 
-    train_vecs = tfidf_matrix[0:len(train_data)]
-    valid_vecs = tfidf_matrix[len(train_data):len(train_data) + len(valid_data)]
-    test_vecs = tfidf_matrix[len(train_data) + len(valid_data):]
+        t_train_vecs, t_valid_vecs, t_test_vecs = _build_corpus(corpus, len(train_data), len(valid_data), title_max_features)
+    
     print("Preprocessing end")
     
-    return train_vecs, valid_vecs, test_vecs
+    if split_title:
+        return train_vecs, valid_vecs, test_vecs, t_train_vecs, t_valid_vecs, t_test_vecs
+    else:
+        return train_vecs, valid_vecs, test_vecs
+
 
 def build_model(model_name):
     if model_name == "dtree":
@@ -79,6 +99,7 @@ hyparam = {
     "bagging_train_times": 200,
     "boosting_train_times": 20,
     "max_features": 15000,
+    "title_max_features": 10000,
     "max_depth": 60,
     "tol": 1e-4,
     "C": 2

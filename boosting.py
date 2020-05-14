@@ -64,16 +64,15 @@ def boosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, sav
     v_preds = boosting_predict(valid_preds, betas)
     rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
     # acc = accuracy_score(valid_labels, v_preds)
-    acc = 0
 
     t_preds = None
     if test_vecs is not None:
         t_preds = boosting_predict(test_preds, betas)
     
     if output_valid_preds:
-        return acc, rmse, t_preds, v_preds
+        return rmse, t_preds, v_preds
     else:
-        return acc, rmse, t_preds
+        return rmse, t_preds
 
 def adaboosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
     v_scores = np.zeros((len(valid_labels), 5))
@@ -99,6 +98,5 @@ def adaboosting(model_name, train_vecs, train_labels, valid_vecs, valid_labels, 
         t_preds = np.dot(t_scores, np.array([0, 1, 2, 3, 4]))
 
     rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
-    acc = 0
 
-    return acc, rmse, t_preds
+    return rmse, t_preds
