@@ -34,21 +34,23 @@ def main():
     
     train_data, train_labels, valid_data, valid_labels, test_data = load_data(data_dir)
 
+    use_nn = (args.model == "nn")
+
     if args.title:
-        train_vecs, valid_vecs, test_vecs, t_train_vecs, t_valid_vecs, t_test_vecs = build_corpus(train_data, valid_data, test_data, split_title=True)
+        train_vecs, valid_vecs, test_vecs, t_train_vecs, t_valid_vecs, t_test_vecs = build_corpus(train_data, valid_data, test_data, split_title=True, nn=use_nn)
     else:
-        train_vecs, valid_vecs, test_vecs = build_corpus(train_data, valid_data, test_data)
+        train_vecs, valid_vecs, test_vecs = build_corpus(train_data, valid_data, test_data, nn=use_nn)
 
 
     if args.baseline:
         model = build_model(args.model)
         model.train(train_vecs, train_labels)
         rmse, _ = model.eval(valid_vecs, valid_labels)
+        print(rmse)
         preds = model.predict(test_vecs)
         output_preds(preds, "results/{}.csv".format(args.model))
 
         print("Baseline:")
-        print(rmse)
     
     else:
         if args.ensemble == "bagging":

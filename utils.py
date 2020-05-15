@@ -4,9 +4,10 @@ import sklearn
 import numpy as np
 import os
 import csv
+import re
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
-from models import SVM, DTree
+from models import SVM, DTree, NN
 
 def load_data(data_dir):
     with open(os.path.join(data_dir, "train.csv"), "r") as f:
@@ -43,7 +44,34 @@ def _build_corpus(corpus, train_len, valid_len, max_features):
     test_vecs = all_vecs[train_len + valid_len:]
     return train_vecs, valid_vecs, test_vecs
 
-def build_corpus(train_data, valid_data, test_data, split_title=False):
+
+def tokenize(text):
+    text = re.sub(
+        "[+\.\!\/_,$%^*(+\"\')]+|[+——()?【】“”！，。？、~@#￥%……&*（）~]+", " ", text)
+    text = text.replace('\n', ' ')
+    text = text.strip().split(' ')
+    text = [w.lower() for w in text if w]
+    return text
+
+def _build_corpus_nn(corpus, train_len, valid_len):
+    all_words = []
+    for text in corpus:
+        all_words.extend(tokenize(text))
+
+    vocab = set(all_words)
+    vocab = list(vocab)
+    hyparam["vocab_size"] = len(vocab) + 1
+    print("vocab_size: ", len(vocab) + 1)
+    w2id = {w:i+1 for i, w in enumerate(vocab)}
+    all_vecs = [[w2id[w] for w in tokenize(text)] for text in corpus]
+
+    train_vecs = all_vecs[0:train_len]
+    valid_vecs = all_vecs[train_len:train_len + valid_len]
+    test_vecs = all_vecs[train_len + valid_len:]
+
+    return train_vecs, valid_vecs, test_vecs
+
+def build_corpus(train_data, valid_data, test_data, split_title=False, nn=False):
     max_features = hyparam["max_features"]
     corpus = []
     print("Preprocessing")
@@ -54,7 +82,10 @@ def build_corpus(train_data, valid_data, test_data, split_title=False):
     for line in test_data:
         corpus.append(line[0] + line[1])
 
-    train_vecs, valid_vecs, test_vecs = _build_corpus(corpus, len(train_data), len(valid_data), max_features)
+    if nn:
+        train_vecs, valid_vecs, test_vecs = _build_corpus_nn(corpus, len(train_data), len(valid_data))
+    else:
+        train_vecs, valid_vecs, test_vecs = _build_corpus(corpus, len(train_data), len(valid_data), max_features)
     
     if split_title:
         title_max_features = hyparam["title_max_features"]
@@ -75,12 +106,13 @@ def build_corpus(train_data, valid_data, test_data, split_title=False):
     else:
         return train_vecs, valid_vecs, test_vecs
 
-
 def build_model(model_name):
     if model_name == "dtree":
         return DTree(max_depth=hyparam["max_depth"])
     elif model_name == "svm":
         return SVM(tol=hyparam["tol"], C=hyparam["C"])
+    elif model_name == "nn":
+        return NN(hyparam["vocab_size"], hyparam["n_embd"], hyparam["n_hidden"], hyparam["train_batch_size"], hyparam["valid_batch_size"], hyparam["device"], hyparam["epoch"])
     else:
         print("No model")
         exit(-1)
@@ -105,5 +137,12 @@ hyparam = {
     "max_depth": 60,
     "tol": 1e-4,
     "C": 2,
-    "a": 0.3
+    "a": 0.3,
+    "n_embd": 256,
+    "n_hidden": 512,
+    "train_batch_size": 64,
+    "valid_batch_size": 8,
+    "device": "cuda",
+    "epoch": 10,
+    "vocab_size": -1
 }
