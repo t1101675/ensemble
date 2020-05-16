@@ -129,11 +129,11 @@ hyparam = {
     "threshold": 0,
     "sample_rate": 0.2,
     "title_sample_rate": 0.2,
-    "title_bagging_train_times": 200,
-    "bagging_train_times": 150,
+    "title_bagging_train_times": 60,
+    "bagging_train_times": 60,
     "boosting_train_times": 20,
     "max_features": 15000,
-    "title_max_features": 15000,
+    "title_max_features": 10000,
     "max_depth": 200,
     "tol": 1e-4,
     "C": 2,
@@ -143,6 +143,6 @@ hyparam = {
     "train_batch_size": 256,
     "valid_batch_size": 8,
     "device": "cuda",
-    "epoch": 200,
+    "epoch": 5,
     "vocab_size": -1
 }
