@@ -65,6 +65,7 @@ def main():
             rmse, test_preds, valid_preds = bagging(bagging_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs)
             if test_preds is not None:
                 output_preds(test_preds, "results/bagging_{}.csv".format(args.model))
+        
         elif args.ensemble == "boosting":
             boosting_hyparam = {
                 "model_name": args.model,
@@ -73,10 +74,20 @@ def main():
                 "output_valid_preds": True
             }
             rmse, test_preds, valid_preds = boosting(boosting_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs)
-            # rmse, test_preds = adaboosting(boosting_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs)
-
             if test_preds is not None:
                 output_preds(test_preds, "results/boosting_{}.csv".format(args.model))
+
+        elif args.endemble == "boosting-ovr":
+            boosting_hyparam = {
+                "model_name": args.model,
+                "train_times": hyparam["boosting_train_times"],
+                "save_path": "models/boosting",
+                "output_valid_preds": True
+            }
+            rmse, test_preds = adaboosting(boosting_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs)
+            if test_preds is not None:
+                output_preds(test_preds, "results/boosting_{}.csv".format(args.model))
+
         else:
             exit(-1)
 
