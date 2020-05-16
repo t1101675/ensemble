@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, Dataset, RandomSampler, SequentialSampl
 from torch.optim import Adam
 import joblib
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.metrics import mean_squared_error
 
 class DTree():
     def __init__(self, max_depth):
@@ -16,15 +16,13 @@ class DTree():
     def train(self, data, labels, sample_weight=None, eval_data=None, eval_labels=None):
         self.cls.fit(data, labels, sample_weight=sample_weight)
         pred = self.cls.predict(data)
-        acc = accuracy_score(labels, pred)
         rmse = mean_squared_error(labels, pred)
-        return acc, rmse, pred
+        return rmse, pred
 
     def eval(self, data, labels):
         pred = self.cls.predict(data)
-        acc = accuracy_score(labels, pred)
         rmse = mean_squared_error(labels, pred) ** 0.5
-        return acc, rmse, pred
+        return rmse, pred
 
     def predict(self, data):
         pred = self.cls.predict(data)
@@ -49,15 +47,13 @@ class SVM():
             self.cls.fit(data, labels)
             
         pred = self.cls.predict(data)
-        acc = accuracy_score(labels, pred)
         rmse = mean_squared_error(labels, pred) ** 0.5
-        return acc, rmse, pred
+        return rmse, pred
     
     def eval(self, data, labels):
         pred = self.cls.predict(data)
-        acc = accuracy_score(labels, pred)
         rmse = mean_squared_error(labels, pred) ** 0.5
-        return acc, rmse, pred
+        return rmse, pred
 
     def predict(self, data):
         pred = self.cls.predict(data)
@@ -157,8 +153,7 @@ class NN():
 
         # rmse = mean_squared_error(labels, preds) ** 0.5
         rmse = 0
-        acc = 0
-        return acc, rmse, preds
+        return rmse, preds
         
     def eval(self, data, labels):
         dataset = RNNDataset(data, labels)
@@ -181,7 +176,6 @@ class NN():
                 preds.extend(pred.to(torch.device("cpu")).numpy().tolist())
         
         rmse = mean_squared_error(labels, preds) ** 0.5
-        acc = 0
         return rmse, preds
 
 

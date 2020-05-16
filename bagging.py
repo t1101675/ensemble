@@ -5,7 +5,7 @@ import os
 
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.metrics import mean_squared_error
 from utils import build_model
 
 def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=None):
@@ -17,7 +17,7 @@ def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_ve
 
     valid_preds = []
     test_preds = []
-    acc, rmse = 0, 0
+    rmse = 0
     tbar = tqdm(range(train_times), desc="Bagging Training")
     for e in tbar:
         _, samp_vec, _, samp_labels = train_test_split(
@@ -25,8 +25,8 @@ def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_ve
         model = build_model(model_name)
         _, _, _ = model.train(samp_vec, samp_labels)
         # model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
-        acc, rmse, pred = model.eval(valid_vecs, valid_labels)
-        print({"valid acc": acc, "valid rmse": rmse})
+        rmse, pred = model.eval(valid_vecs, valid_labels)
+        print({"valid rmse": rmse})
         valid_preds.append(pred)
         if test_vecs is not None:
             pred = model.predict(test_vecs)
@@ -50,7 +50,6 @@ def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_ve
 
     v_preds = bagging_predict(valid_preds)
     rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
-    # acc = accuracy_score(valid_labels, v_preds)
 
     t_preds = None
     if test_vecs is not None:

@@ -4,24 +4,24 @@ import os
 import json
 
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.metrics import mean_squared_error
 
 from utils import build_model, hyparam
 
 def boosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=None, n_class=5):
     model_name = hyparam["model_name"]
-    train_times = hyparam["boosting_train_times"]
+    train_times = hyparam["train_times"]
     output_valid_preds = hyparam["output_valid_preds"]
 
     train_weights = np.ones(len(train_labels)) / len(train_labels)
     betas = []
     valid_preds = []
     test_preds = []
-    acc, rmse = 0, 0
+    rmse = 0
     tbar = tqdm(range(train_times), desc="Boosting Training")
     for e in tbar:
         model = build_model(model_name)
-        train_acc, train_rmse, train_pred = model.train(train_vecs, train_labels, sample_weight=train_weights)
+        train_rmse, train_pred = model.train(train_vecs, train_labels, sample_weight=train_weights)
         train_pred = np.array(train_pred)
         wrong_weights = train_weights * (train_pred != train_labels)
         sum_wrong_weight = np.sum(wrong_weights)
@@ -38,7 +38,7 @@ def boosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_v
         betas.append(beta)
         # model.save(os.path.join(save_path, "boosting-{}-{}".format(model_name, e)))
 
-        valid_acc, valid_rmse, valid_pred = model.eval(valid_vecs, valid_labels)
+        valid_rmse, valid_pred = model.eval(valid_vecs, valid_labels)
         valid_preds.append(valid_pred)
 
         if test_vecs is not None:
@@ -46,7 +46,6 @@ def boosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_v
             test_preds.append(test_pred)
 
         # print("train_weights:", train_weights)
-        # print({"train_acc": train_acc, "train_rmse": train_rmse, "valid_acc": valid_acc, "valid_rmse": valid_rmse})
 
     # with open(os.path.join(save_path, "betas.json"), "w") as f:
     #     json.dump(betas, f)
@@ -66,7 +65,6 @@ def boosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_v
 
     v_preds = boosting_predict(valid_preds, betas)
     rmse = mean_squared_error(valid_labels, v_preds) ** 0.5
-    # acc = accuracy_score(valid_labels, v_preds)
 
     t_preds = None
     if test_vecs is not None:
@@ -83,8 +81,8 @@ def adaboosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, sav
     for i in range(5):
         train_labels_2 = (train_labels == i) + 0
         valid_labels_2 = (valid_labels == i) + 0
-        acc, rmse, t_preds, v_preds = boosting(hyparam, train_vecs, train_labels_2, valid_vecs, valid_labels_2, test_vecs=test_vecs, n_class=2)
-        print("class {} acc: {}, rmse: {}".format(i, acc, rmse))
+        rmse, t_preds, v_preds = boosting(hyparam, train_vecs, train_labels_2, valid_vecs, valid_labels_2, test_vecs=test_vecs, n_class=2)
+        print("class {}, rmse: {}".format(i, rmse))
         v_scores[:, i] = v_preds
         if v_preds is not None:
             t_scores[:, i] = t_preds

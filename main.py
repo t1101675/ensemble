@@ -11,7 +11,7 @@ from models import DTree, SVM
 from tqdm import tqdm
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.metrics import mean_squared_error
 
 from utils import hyparam, load_data, build_corpus, build_model, output_preds
 from bagging import bagging
@@ -73,7 +73,7 @@ def main():
                 "output_valid_preds": True
             }
             rmse, test_preds, valid_preds = boosting(boosting_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs)
-            # acc, rmse, test_preds = adaboosting(args.model, train_vecs[0:20000], train_labels[0:20000], valid_vecs[0:2000], valid_labels[0:2000], "models/boosting", test_vecs=test_vecs)
+            # rmse, test_preds = adaboosting(args.model, train_vecs[0:20000], train_labels[0:20000], valid_vecs[0:2000], valid_labels[0:2000], "models/boosting", test_vecs=test_vecs)
 
             if test_preds is not None:
                 output_preds(test_preds, "results/boosting_{}.csv".format(args.model))
