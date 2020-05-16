@@ -23,7 +23,7 @@ def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_ve
         _, samp_vec, _, samp_labels = train_test_split(
             train_vecs, train_labels, test_size=sample_rate)
         model = build_model(model_name)
-        _, _, _ = model.train(samp_vec, samp_labels)
+        _, _ = model.train(samp_vec, samp_labels)
         # model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
         rmse, pred = model.eval(valid_vecs, valid_labels)
         print({"valid rmse": rmse})

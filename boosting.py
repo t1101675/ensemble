@@ -75,7 +75,7 @@ def boosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_v
     else:
         return rmse, t_preds
 
-def adaboosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, save_path, test_vecs=None):
+def adaboosting(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=None):
     v_scores = np.zeros((len(valid_labels), 5))
     t_scores = np.zeros((test_vecs.shape[0], 5))
     for i in range(5):

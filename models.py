@@ -124,7 +124,7 @@ class NN():
         dataset = RNNDataset(data, labels)
         sampler = SequentialSampler(dataset)
         data_loader = DataLoader(dataset, batch_size=self.train_batch_size, collate_fn=rnn_collate, sampler=sampler)
-        optimizer = Adam(self.model.parameters(), lr=5e-4, weight_decay=0.001)
+        optimizer = Adam(self.model.parameters(), lr=1e-4, weight_decay=0.001)
         total_steps = 0
         total_loss = 0
         preds = []

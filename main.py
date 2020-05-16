@@ -73,15 +73,15 @@ def main():
                 "output_valid_preds": True
             }
             rmse, test_preds, valid_preds = boosting(boosting_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs)
-            # rmse, test_preds = adaboosting(args.model, train_vecs[0:20000], train_labels[0:20000], valid_vecs[0:2000], valid_labels[0:2000], "models/boosting", test_vecs=test_vecs)
+            # rmse, test_preds = adaboosting(boosting_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs)
 
             if test_preds is not None:
                 output_preds(test_preds, "results/boosting_{}.csv".format(args.model))
         else:
-            pass
+            exit(-1)
 
-        # print("Ensemble:")
-        # print(rmse)
+        print("Ensemble:")
+        print(rmse)
         a = hyparam["a"]
         bagging_hyparam = {
             "model_name": args.model,
