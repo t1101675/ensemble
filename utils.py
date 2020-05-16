@@ -139,10 +139,10 @@ hyparam = {
     "C": 2,
     "a": 0.3,
     "n_embd": 256,
-    "n_hidden": 512,
-    "train_batch_size": 64,
+    "n_hidden": 256,
+    "train_batch_size": 256,
     "valid_batch_size": 8,
     "device": "cuda",
-    "epoch": 10,
+    "epoch": 200,
     "vocab_size": -1
 }

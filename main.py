@@ -44,7 +44,7 @@ def main():
 
     if args.baseline:
         model = build_model(args.model)
-        model.train(train_vecs, train_labels)
+        model.train(train_vecs, train_labels, eval_data=valid_vecs, eval_labels=valid_labels)
         rmse, _ = model.eval(valid_vecs, valid_labels)
         print(rmse)
         preds = model.predict(test_vecs)
