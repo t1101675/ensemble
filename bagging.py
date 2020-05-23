@@ -14,7 +14,9 @@ def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_ve
     threshold = hyparam["threshold"]
     model_name = hyparam["model_name"]
     output_valid_preds = hyparam["output_valid_preds"]
+    output_all = hyparam["output_all"] if "output_all" in hyparam else False
 
+    train_preds = []
     valid_preds = []
     test_preds = []
     rmse = 0
@@ -24,6 +26,8 @@ def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_ve
             train_vecs, train_labels, test_size=sample_rate)
         model = build_model(model_name)
         _, _ = model.train(samp_vec, samp_labels)
+        if output_all:
+            train_preds.append(model.predict(train_vecs))
         # model.save(os.path.join(save_path, "bagging-{}-{}.model".format(model_name, e)))
         rmse, pred = model.eval(valid_vecs, valid_labels)
         print({"valid rmse": rmse})
@@ -55,7 +59,10 @@ def bagging(hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_ve
     if test_vecs is not None:
         t_preds = bagging_predict(test_preds)
 
-    if output_valid_preds:
-        return rmse, t_preds, v_preds
+    if output_all:
+        return rmse, t_preds, v_preds, train_preds, valid_preds, test_preds
     else:
-        return rmse, t_preds
+        if output_valid_preds:
+            return rmse, t_preds, v_preds
+        else:
+            return rmse, t_preds

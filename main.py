@@ -17,6 +17,8 @@ from utils import hyparam, load_data, build_corpus, build_model, output_preds
 from bagging import bagging
 from boosting import adaboosting, boosting
 
+from nn_bagging import bagging_net
+
 np.random.seed(888)
 
 def main():
@@ -27,6 +29,7 @@ def main():
     parser.add_argument("--ensemble", type=str, default="bagging")
     parser.add_argument("--baseline", action="store_true")
     parser.add_argument("--title", action="store_true")
+    parser.add_argument("--bagging_net", action="store_true")
 
     args = parser.parse_args()
 
@@ -51,6 +54,29 @@ def main():
         output_preds(preds, "results/{}.csv".format(args.model))
 
         print("Baseline:")
+
+    elif args.bagging_net:
+        bagging_hyparam = {
+            "model_name": args.model,
+            "sample_rate": hyparam["sample_rate"],
+            "train_times": hyparam["bagging_train_times"],
+            "threshold": hyparam["threshold"],
+            "save_path": "models/bagging",
+            "output_valid_preds": True
+        }
+        net_hyparam = {
+            "bagging_hyparam": bagging_hyparam,
+            "batch_size": 256,
+            "eval_batch_size": 256,
+            "n_embed": hyparam["max_features"],
+            "n_output": hyparam["bagging_train_times"],
+            "n_hidden": 256,
+            "epoch": 10,
+            "device": "cuda",
+            "lr": 0.1
+        }
+
+        bagging_net(net_hyparam, train_vecs, train_labels, valid_vecs, valid_labels, test_vecs=test_vecs[0:200])
     
     else:
         if args.ensemble == "bagging":
